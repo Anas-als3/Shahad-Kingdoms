@@ -32,7 +32,7 @@ Two AI features in this area are player-facing. The **kingdom recommendation** r
 
 ## My endpoints
 
-Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom-env.eba-qz67sy59.eu-central-1.elasticbeanstalk.com), all under `/api/v1`. Full interactive reference: **[Postman API documentation](https://documenter.getpostman.com/view/52784213/2sBXwwn7pE)**. Auth is HTTP Basic; 🔒 = admin-only.
+Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom-env.eba-qz67sy59.eu-central-1.elasticbeanstalk.com), all under `/api/v1`. Full interactive reference: **[Postman API documentation](https://documenter.getpostman.com/view/52784213/2sBXwwn7pE)**. Auth is HTTP Basic; 🔒 = admin-only. These are the **key** endpoints; the full CRUD set is in the Postman docs.
 
 ### Kingdoms — `/api/v1/kingdom`
 | Method | Path | What it does |
@@ -40,9 +40,6 @@ Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom
 | GET | `/kingdom/get` | List all kingdoms. |
 | GET | `/kingdom/get/{id}` | One kingdom's details. |
 | POST | `/kingdom/ai-recommendation` | AI recommends the kingdom that fits the player's interests. |
-| POST | `/kingdom/add` | 🔒 Create a kingdom. |
-| PUT | `/kingdom/update/{id}` | 🔒 Update a kingdom. |
-| DELETE | `/kingdom/delete/{id}` | 🔒 Delete a kingdom. |
 
 ### Leaderboards & land control — `/api/v1/kingdom`
 | Method | Path | What it does |
@@ -66,9 +63,6 @@ Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom
 | GET | `/kingdom-membership/{kingdomId}/division-progress` | My progress toward the next division. |
 | GET | `/kingdom-membership/{kingdomId}/xp-need-to-higher-rank` | XP I still need for the next rank. |
 | GET | `/kingdom-membership/{kingdomId}/number-of-completed-challenges` | Count of challenges I completed in a kingdom. |
-| GET | `/kingdom-membership/get/{id}` | One membership by id. |
-| GET | `/kingdom-membership/get` | 🔒 List all memberships. |
-| PUT | `/kingdom-membership/update/{id}` | 🔒 Update a membership. |
 
 ### Profile & AI report — `/api/v1/player`
 | Method | Path | What it does |
@@ -76,8 +70,6 @@ Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom
 | GET | `/player/me` | The logged-in caller's identity (full profile for players). |
 | GET | `/player/get` | My full profile. |
 | PUT | `/player/update` | Update my profile. |
-| POST | `/player/add/{userId}` | Create a player profile for a user. |
-| DELETE | `/player/delete` | Delete my profile. |
 | POST | `/player/ai-report` | Generate + email my AI performance report. |
 | GET | `/player/summary` | My activity & stats summary. |
 | GET | `/player/best-kingdom` | My best-performing kingdom. |
@@ -89,28 +81,11 @@ Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom
 | --- | --- | --- |
 | GET | `/player-badge/player-badges` | The badges I've earned. |
 | GET | `/player-badge/{kingdomId}/member-badges` | The badges I've earned in one kingdom. |
-| GET | `/player-badge/get` | 🔒 List every player badge. |
-| POST | `/player-badge/add/{badgeId}/{membershipId}` | 🔒 Award a badge to a membership. |
-| PUT | `/player-badge/update/{id}` | 🔒 Update a player-badge record. |
-| DELETE | `/player-badge/delete/{id}` | 🔒 Delete a player-badge record. |
-
-### Seasonal scores — `/api/v1/period-score`
-| Method | Path | What it does |
-| --- | --- | --- |
-| GET | `/period-score/get/{id}` | One period-score by id. |
-| GET | `/period-score/get` | 🔒 List all period-scores. |
-| POST | `/period-score/add/{membershipId}` | 🔒 Add a period-score for a membership. |
-| PUT | `/period-score/update/{id}` | 🔒 Update a period-score. |
-| DELETE | `/period-score/delete/{id}` | 🔒 Delete a period-score. |
 
 ### Challenge questions (quiz) — `/api/v1/challenge-question`
 | Method | Path | What it does |
 | --- | --- | --- |
 | POST | `/challenge-question/whatsapp/webhook` | Inbound WhatsApp quiz answer (Twilio) — grades the reply. |
-| GET | `/challenge-question/get` | 🔒 List all challenge questions. |
-| POST | `/challenge-question/add` | 🔒 Create a challenge question. |
-| PUT | `/challenge-question/update/{id}` | 🔒 Update a challenge question. |
-| DELETE | `/challenge-question/delete/{id}` | 🔒 Delete a challenge question. |
 
 ### Extras
 | Method | Path | What it does |
