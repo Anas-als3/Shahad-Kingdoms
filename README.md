@@ -1,0 +1,278 @@
+# Shahad — Kingdom (الممالك) Modules
+
+> Kingdoms, memberships, leaderboards, player profiles, earned badges, and AI recommendations for a gamified Arabic-first self-improvement platform.
+
+**🌐 Live API:** http://kingdom-env.eba-qz67sy59.eu-central-1.elasticbeanstalk.com  
+**📖 API documentation:** [Postman published docs](https://documenter.getpostman.com/view/52784213/2sBXwwn7pE)
+
+## Overview
+
+**الممالك (Kingdom)** منصّة عربية لتطوير الذات بأسلوب الألعاب. ينضمّ اللاعب إلى **ممالك** متنوّعة (اللياقة، الصدقة، التطوّع، القراءة، الألعاب، الإيمان، المعرفة، التغذية، البرمجة)، ويخوض **تحدّيات يولّدها الذكاء الاصطناعي**، وعليه أن **يُثبت** إكمال كل تحدٍّ عبر تحقّق حقيقي — أنشطة Strava، أو تبرّعات بنكية عبر المصرفية المفتوحة (Neotek)، أو شهادات تطوّع يراجعها الذكاء الاصطناعي، أو اختبارات على واتساب، أو تحليل صور الوجبات، أو وقت اللعب والإنجازات على Steam، أو مساهمات GitHub. التحدّيات المُثبَتة تمنح **نقاط خبرة (XP)** ترفع **درجة اللاعب** (من D3 إلى D1) وتُكسبه **أوسمة**؛ كما **يتنافس اللاعبون في لوبيات** (يفتح اشتراك Premium عبر LemonSqueezy إنشاءها).
+
+## My area: Kingdoms, Membership, Leaderboards & Profile
+
+This subsystem is where a player **lives inside the kingdoms**. It serves browsing and joining **kingdoms**, the **AI kingdom recommendation** that matches a player's interests to a kingdom, per-kingdom **membership** with all the player's standing — **XP, streak, division, rank, land control, and progress to the next division** — and the **leaderboards** (by period, by division, or both). It also owns the **player profile** and the **AI-written performance report**, the player's **earned badges**, and the **seasonal period-scores**. Finally it owns the **challenge-question quizzes**, including the **WhatsApp quiz** that grades a player's answers by message. Kingdoms owned here: **Reading, Gaming, Faith**.
+
+## System class diagram
+
+Describes the whole Kingdom system (15 entities), shared across the team; the modules in this README are Shahad's.
+
+```mermaid
+classDiagram
+    class User {
+        Integer id
+        String email
+        String username
+        String phoneNumber
+        String password
+        UserRole role
+        boolean phoneVerified
+    }
+    class Player {
+        Integer id
+        String displayName
+        String interests
+        LocalDateTime joinedAt
+    }
+    class Subscription {
+        Integer id
+        String lemonSubscriptionId
+        LocalDateTime startDate
+        SubscriptionStatus status
+        LocalDateTime expiresAt
+        boolean autoRenew
+        SubscriptionPlan plan
+    }
+    class ConnectedAccount {
+        Integer id
+        ConnectedProvider provider
+        String accessToken
+        String refreshToken
+        LocalDateTime expiresAt
+        String externalUserId
+        String status
+        LocalDateTime connectedAt
+    }
+    class Kingdom {
+        Integer id
+        String name
+        String description
+        KingdomType type
+    }
+    class KingdomMembership {
+        Integer id
+        Integer totalXP
+        Integer division
+        Integer streak
+        LocalDateTime joinedAt
+    }
+    class PeriodScore {
+        Integer id
+        Period period
+        LocalDateTime startDate
+        LocalDateTime endDate
+        Integer seasonalXp
+    }
+    class Challenge {
+        Integer id
+        String title
+        String description
+        Period period
+        LocalDateTime startDate
+        LocalDateTime endDate
+        Difficulty difficulty
+        Integer xpReward
+        Integer targetValue
+        String verificationSource
+        String metricKey
+        String verificationRule
+        ChallengeScope scope
+    }
+    class ChallengeProgress {
+        Integer id
+        ProgressStatus status
+        LocalDateTime startAt
+        LocalDateTime finishedAt
+        RejectionReason rejectionReason
+        Integer verifiedValue
+        Integer currentQuestionIndex
+    }
+    class ChallengeQuestion {
+        Integer id
+        String question
+        String optionA
+        String optionB
+        String optionC
+        String optionD
+        String correctAnswer
+    }
+    class Badge {
+        Integer id
+        String name
+        String description
+        BadgeType type
+        Integer requiredValue
+    }
+    class PlayerBadge {
+        Integer id
+        LocalDateTime earnedAt
+    }
+    class Lobby {
+        Integer id
+        Integer hostPlayerId
+        String name
+        String description
+        LobbyVisibility visibility
+        LocalDateTime startsAt
+        LocalDateTime endsAt
+        Integer division
+        LobbyStatus status
+        Integer winnerPlayerId
+    }
+    class LobbyMember {
+        Integer id
+        MemberRole role
+        LocalDateTime joinedAt
+    }
+    class LobbyInvite {
+        Integer id
+        InviteStatus status
+        LocalDateTime sentAt
+        LocalDateTime respondedAt
+    }
+    User "1" --> "1" Player : player
+    Player "1" --> "1" Subscription
+    Player "1" --> "*" ConnectedAccount
+    Player "1" --> "*" KingdomMembership
+    Player "1" --> "*" PlayerBadge
+    Kingdom "1" --> "*" KingdomMembership
+    Kingdom "1" --> "*" Challenge
+    Kingdom "1" --> "*" Badge
+    Kingdom "1" --> "*" Lobby
+    KingdomMembership "1" --> "*" PeriodScore
+    KingdomMembership "1" --> "*" ChallengeProgress
+    Challenge "1" --> "*" ChallengeProgress
+    Challenge "1" --> "*" ChallengeQuestion
+    Challenge "1" --> "1" Lobby : lobby challenge
+    Badge "1" --> "*" PlayerBadge
+    Lobby "1" --> "*" LobbyMember
+    Lobby "1" --> "*" LobbyInvite
+```
+
+## Use case diagram
+
+![Use case diagram — Kingdoms System](docs/use-case-diagram.png)
+
+## AI in Kingdom
+
+Two AI features in this area are player-facing. The **kingdom recommendation** reads a player's stated interests and suggests the kingdom that fits them best. The **AI player report** generates a personalised, plain-Arabic performance summary and emails it to the player. The **Reading, Gaming, and Faith** kingdoms run on **AI-generated challenges** (shared `AiService`, OpenAI gpt-5.5) and are verified through **quizzes** — reading-comprehension questions sourced from **Google Books**, **Faith / Quran** quizzes delivered and graded over **WhatsApp**, and **Steam** playtime/achievement checks for Gaming. XP is always awarded by our own code, never the model.
+
+## My endpoints
+
+Base URL `http://localhost:8080` (local) or the [live deployment](http://kingdom-env.eba-qz67sy59.eu-central-1.elasticbeanstalk.com), all under `/api/v1`. Full interactive reference: **[Postman API documentation](https://documenter.getpostman.com/view/52784213/2sBXwwn7pE)**. Auth is HTTP Basic; 🔒 = admin-only.
+
+### Kingdoms — `/api/v1/kingdom`
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/kingdom/get` | List all kingdoms. |
+| GET | `/kingdom/get/{id}` | One kingdom's details. |
+| POST | `/kingdom/ai-recommendation` | AI recommends the kingdom that fits the player's interests. |
+| POST | `/kingdom/add` | 🔒 Create a kingdom. |
+| PUT | `/kingdom/update/{id}` | 🔒 Update a kingdom. |
+| DELETE | `/kingdom/delete/{id}` | 🔒 Delete a kingdom. |
+
+### Leaderboards & land control — `/api/v1/kingdom`
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/kingdom/{kingdomId}/leaderboard/period/{period}` | Leaderboard for a kingdom by time period. |
+| GET | `/kingdom/{kingdomId}/leaderboard/division/{division}` | Leaderboard filtered to one division. |
+| GET | `/kingdom/{kingdomId}/leaderboard/period/{period}/division/{division}` | Leaderboard by period **and** division. |
+| GET | `/kingdom/{kingdomId}/land-control/{division}` | Land-control summary for a kingdom + division. |
+
+### Membership & my standing — `/api/v1/kingdom-membership`
+| Method | Path | What it does |
+| --- | --- | --- |
+| POST | `/kingdom-membership/join/{kingdomId}` | Join a kingdom. |
+| DELETE | `/kingdom-membership/leave/{kingdomId}` | Leave a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/membership-id` | Resolve my membership id for a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/member-xp` | My XP in a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/member-streak` | My streak in a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/member-divison` | My division in a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/member-rank` | My leaderboard rank in a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/member-land-percentage` | % of land I control in a kingdom. |
+| GET | `/kingdom-membership/{kingdomId}/division-progress` | My progress toward the next division. |
+| GET | `/kingdom-membership/{kingdomId}/xp-need-to-higher-rank` | XP I still need for the next rank. |
+| GET | `/kingdom-membership/{kingdomId}/number-of-completed-challenges` | Count of challenges I completed in a kingdom. |
+| GET | `/kingdom-membership/get/{id}` | One membership by id. |
+| GET | `/kingdom-membership/get` | 🔒 List all memberships. |
+| PUT | `/kingdom-membership/update/{id}` | 🔒 Update a membership. |
+
+### Profile & AI report — `/api/v1/player`
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/player/me` | The logged-in caller's identity (full profile for players). |
+| GET | `/player/get` | My full profile. |
+| PUT | `/player/update` | Update my profile. |
+| POST | `/player/add/{userId}` | Create a player profile for a user. |
+| DELETE | `/player/delete` | Delete my profile. |
+| POST | `/player/ai-report` | Generate + email my AI performance report. |
+| GET | `/player/summary` | My activity & stats summary. |
+| GET | `/player/best-kingdom` | My best-performing kingdom. |
+| GET | `/player/kingdoms` | The kingdoms I participate in. |
+| GET | `/player/highest-streak` | My highest streak across kingdoms. |
+
+### Earned badges — `/api/v1/player-badge`
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/player-badge/player-badges` | The badges I've earned. |
+| GET | `/player-badge/{kingdomId}/member-badges` | The badges I've earned in one kingdom. |
+| GET | `/player-badge/get` | 🔒 List every player badge. |
+| POST | `/player-badge/add/{badgeId}/{membershipId}` | 🔒 Award a badge to a membership. |
+| PUT | `/player-badge/update/{id}` | 🔒 Update a player-badge record. |
+| DELETE | `/player-badge/delete/{id}` | 🔒 Delete a player-badge record. |
+
+### Seasonal scores — `/api/v1/period-score`
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/period-score/get/{id}` | One period-score by id. |
+| GET | `/period-score/get` | 🔒 List all period-scores. |
+| POST | `/period-score/add/{membershipId}` | 🔒 Add a period-score for a membership. |
+| PUT | `/period-score/update/{id}` | 🔒 Update a period-score. |
+| DELETE | `/period-score/delete/{id}` | 🔒 Delete a period-score. |
+
+### Challenge questions (quiz) — `/api/v1/challenge-question`
+| Method | Path | What it does |
+| --- | --- | --- |
+| POST | `/challenge-question/whatsapp/webhook` | Inbound WhatsApp quiz answer (Twilio) — grades the reply. |
+| GET | `/challenge-question/get` | 🔒 List all challenge questions. |
+| POST | `/challenge-question/add` | 🔒 Create a challenge question. |
+| PUT | `/challenge-question/update/{id}` | 🔒 Update a challenge question. |
+| DELETE | `/challenge-question/delete/{id}` | 🔒 Delete a challenge question. |
+
+### Extras
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/subscription/days-left` | Days left on my subscription. |
+| GET | `/lobby/my-finished` | The lobbies I've finished. |
+| GET | `/lobby/{lobbyId}/member-count` | How many members a lobby has. |
+
+## Tech stack
+
+Java 17 · Spring Boot 4.0.6 · Spring Web · Spring Data JPA (Hibernate) · MySQL · Lombok · Maven · OpenAI (gpt-5.5) · Steam · Google Books · Twilio (WhatsApp) · Mailtrap.
+
+## Run it
+
+```bash
+# MySQL on localhost with a database named `Data`, then:
+mvn spring-boot:run
+```
+
+- Local base URL: `http://localhost:8080/api/v1`
+- Live deployment: `http://kingdom-env.eba-qz67sy59.eu-central-1.elasticbeanstalk.com/api/v1`
+- API documentation (Postman): https://documenter.getpostman.com/view/52784213/2sBXwwn7pE
+- Provide secrets as env vars (or a git-ignored `src/main/resources/application-local.properties`): `OPENAI_API_KEY`, `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`, `MAILTRAP_API_TOKEN`, `STEAM_*`, `GOOGLE_BOOKS_*`.
+- For deployment set `SPRING_JPA_HIBERNATE_DDL_AUTO=update` and `DEMO_SEED_ENABLED=false`.
+
+## Team
+
+Graduation project — built by **Anas**, **Shahad**, and **Maysun**. The modules documented in this README belong to **Shahad** (kingdoms, membership, leaderboards, profile, badges, challenge-question quizzes — Reading / Gaming / Faith).
